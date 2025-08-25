@@ -1,0 +1,28 @@
+{
+  "name": "shuban",
+  "version": "0.1.0",
+  "description": "an image search engine built on open databases",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/honeygooner/shuban"
+  },
+  "imports": {
+    "#internal/*": "./src/*.ts"
+  },
+  "scripts": {
+    "start": "node src/main.ts"
+  },
+  "dependencies": {
+    "@effect/experimental": "^0.54.6",
+    "@effect/platform": "^0.90.6",
+    "@effect/platform-node": "^0.96.0",
+    "effect": "^3.17.9"
+  },
+  "devDependencies": {
+    "@tsconfig/node-ts": "^23.6.1",
+    "@tsconfig/node24": "^24.0.1",
+    "@types/node": "24.3.0",
+    "typescript": "^5.9.2"
+  }
+}

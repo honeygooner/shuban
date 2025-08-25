@@ -1,0 +1,19 @@
+// see: https://aka.ms/devcontainer.json
+{
+	"image": "mcr.microsoft.com/devcontainers/typescript-node",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"effectful-tech.effect-vscode"
+			]
+		}
+	},
+	"features": {
+		"ghcr.io/devcontainers/features/node:1": {
+			"version": "24.3.0" // matches @types/node
+		}
+	},
+	"mounts": [
+		"source=${localEnv:HOME}/.ssh,target=/home/node/.ssh,type=bind"
+	]
+}

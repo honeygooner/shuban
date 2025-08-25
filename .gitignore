@@ -1,0 +1,20 @@
+# dependencies
+node_modules/
+
+# editor
+.vscode/
+
+# environment
+.env
+.env*.local
+
+# logs
+logs/
+*.log
+npm-debug.log*
+
+# miscellaneous
+.DS_Store
+
+# typescript
+*.tsbuildinfo
