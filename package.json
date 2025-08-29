@@ -11,18 +11,23 @@
     "#internal/*": "./src/*.ts"
   },
   "scripts": {
-    "start": "node src/main.ts"
+    "start": "node src/main.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push"
   },
   "dependencies": {
     "@effect/experimental": "^0.54.6",
     "@effect/platform": "^0.90.6",
     "@effect/platform-node": "^0.96.0",
-    "effect": "^3.17.9"
+    "drizzle-orm": "^0.44.5",
+    "effect": "^3.17.9",
+    "postgres": "^3.4.7"
   },
   "devDependencies": {
     "@tsconfig/node-ts": "^23.6.1",
     "@tsconfig/node24": "^24.0.1",
     "@types/node": "24.3.0",
+    "drizzle-kit": "^0.31.4",
     "typescript": "^5.9.2"
   }
 }

@@ -1,0 +1,7 @@
+services:
+  app:
+    image: mcr.microsoft.com/devcontainers/typescript-node:latest
+    build: !reset null
+    command: sleep infinity
+    volumes:
+      - .:/workspace:cached
