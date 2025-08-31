@@ -1,5 +1,5 @@
 import { HttpClient, HttpClientError, HttpClientRequest, HttpClientResponse, UrlParams } from "@effect/platform";
-import { Effect, Function, LogLevel, Queue, Schedule, Schema, Stream, Take } from "effect";
+import { Effect, Function, LogLevel, Schedule, Schema } from "effect";
 import pkg from "../package.json" with { type: "json" };
 
 export const decodeJsonResponse = <A, I, R>(schema: Schema.Schema<A, I, R>, level = LogLevel.Debug) =>
@@ -39,13 +39,6 @@ export const makeClient = (url: URL | string) =>
           retryStatuses.includes(error.response.status),
       }),
     ),
-  );
-
-/** @see {@linkcode Stream.runIntoQueue} */
-export const toBoundedQueue = (capacity: number) => <A, E, R>(stream: Stream.Stream<A, E, R>) =>
-  Effect.flatMap(
-    Queue.bounded<Take.Take<A, E>>(capacity),
-    (queue) => Effect.zipRight(Stream.runIntoQueue(stream, queue), Effect.succeed(queue)),
   );
 
 const toResponseError =
