@@ -9,10 +9,10 @@ export class Bluesky extends Effect.Service<Bluesky>()("@/bluesky", {
   effect: Effect.gen(function* () {
     const url = yield* Function.pipe(
       Config.url("BLUESKY_URL"),
-      Config.withDefault("https://public.api.bsky.app"),
+      Config.withDefault(new URL("https://public.api.bsky.app")),
     );
     return Function.pipe(
-      yield* makeClient(url),
+      yield* makeClient(url.href),
       HttpClient.mapRequest(HttpClientRequest.acceptJson),
       HttpClient.transformResponse(decodeJsonError(BlueskyError))
     );

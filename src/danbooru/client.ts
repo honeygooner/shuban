@@ -9,7 +9,7 @@ export class Danbooru extends Effect.Service<Danbooru>()("@/danbooru", {
   scoped: Effect.gen(function* () {
     const url = yield* Function.pipe(
       Config.url("DANBOORU_URL"),
-      Config.withDefault("https://danbooru.donmai.us"),
+      Config.withDefault(new URL("https://danbooru.donmai.us")),
     );
     const rateLimit = yield* RateLimiter.make({
       algorithm: "fixed-window",
@@ -17,7 +17,7 @@ export class Danbooru extends Effect.Service<Danbooru>()("@/danbooru", {
       limit: 5,
     });
     return Function.pipe(
-      yield* makeClient(url),
+      yield* makeClient(url.href),
       HttpClient.mapRequest(HttpClientRequest.acceptJson),
       HttpClient.transformResponse(rateLimit),
       HttpClient.transformResponse(decodeJsonError(DanbooruError)),

@@ -25,10 +25,10 @@ export const decodeJsonError = <A, I, R>(schema: Schema.Schema<A, I, R>) =>
       ),
   );
 
-export const makeClient = (url: URL | string) =>
+export const makeClient = (url: string) =>
   Effect.map(HttpClient.HttpClient, (client) =>
     client.pipe(
-      HttpClient.mapRequest(HttpClientRequest.prependUrl(url.toString())),
+      HttpClient.mapRequest(HttpClientRequest.prependUrl(url)),
       HttpClient.mapRequest(
         HttpClientRequest.setHeader("User-Agent", `${pkg.name}/${pkg.version} (${pkg.repository.url})`),
       ),
