@@ -3,7 +3,7 @@ import * as Danbooru from "#internal/danbooru/client";
 import * as Database from "#internal/db/client";
 import { DevTools } from "@effect/experimental";
 import { NodeRuntime, NodeSocket } from "@effect/platform-node";
-import { Effect, Function, Layer, Option, Stream } from "effect";
+import { Effect, Function, Layer, Logger, LogLevel, Option, Stream } from "effect";
 
 const program = Function.pipe(
   Danbooru.getArtistUrlsStream({
@@ -26,6 +26,7 @@ Function.pipe(
       DevTools.layerWebSocket(),
       NodeSocket.layerWebSocketConstructor,
     ),
+    Logger.minimumLogLevel(LogLevel.Debug),
     Bluesky.Bluesky.Default,
     Danbooru.Danbooru.Default,
     Database.Database.Default,

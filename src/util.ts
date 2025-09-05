@@ -1,57 +1,41 @@
 import { HttpClient, HttpClientError, HttpClientRequest, HttpClientResponse, UrlParams } from "@effect/platform";
-import { Effect, Function, LogLevel, Schedule, Schema } from "effect";
+import { Effect, Function, type RateLimiter, Schedule, Schema } from "effect";
 import pkg from "../package.json" with { type: "json" };
 
-export const decodeJsonResponse = <A, I, R>(schema: Schema.Schema<A, I, R>, level = LogLevel.Debug) =>
-  (response: HttpClientResponse.HttpClientResponse) =>
-    Function.pipe(
-      Effect.flatMap(response.json, Schema.decodeUnknown(schema)),
-      Effect.mapError(toResponseError({ reason: "Decode", response })),
-      Effect.tap((value) =>
+export const decodeJsonResponse = HttpClientResponse.schemaBodyJson;
+
+export const makeClient = <E, I, R>(options: {
+  readonly baseUrl: string;
+  readonly errorSchema: Schema.Schema<E, I, R>;
+  readonly rateLimiter?: RateLimiter.RateLimiter;
+}) =>
+  Effect.map(
+    HttpClient.HttpClient,
+    Function.flow(
+      HttpClient.mapRequest(HttpClientRequest.prependUrl(options.baseUrl)),
+      HttpClient.mapRequest(HttpClientRequest.setHeader("Accept", "application/json")),
+      HttpClient.mapRequest(HttpClientRequest.setHeader("User-Agent", `${pkg.name}/${pkg.version} (${pkg.repository.url})`)),
+      HttpClient.transform(options.rateLimiter || Function.identity),
+      HttpClient.tap(({ request, status }) =>
         Function.pipe(
-          Effect.logWithLevel(level, `${response.status} ${response.request.method} ${response.request.url}`, value),
-          Effect.annotateLogs(UrlParams.toRecord(response.request.urlParams)),
+          Effect.logDebug(`${status} ${request.method} ${request.url}`),
+          Effect.annotateLogs(UrlParams.toRecord(request.urlParams)),
         ),
       ),
-    );
-
-export const decodeJsonError = <A, I, R>(schema: Schema.Schema<A, I, R>) =>
-  Effect.flatMap((response: HttpClientResponse.HttpClientResponse) =>
-    response.status >= 200 && response.status < 300
-      ? Effect.succeed(response)
-      : Effect.flatMap(
-        decodeJsonResponse(schema, LogLevel.Error)(response),
-        toResponseError({ reason: "StatusCode", response }),
+      HttpClient.filterStatusOk,
+      HttpClient.transformResponse(
+        Effect.catchIf(
+          (error) => error instanceof HttpClientError.ResponseError,
+          (error) =>
+            Function.pipe(
+              Effect.flatMap(error.response.json, Schema.decodeUnknown(options.errorSchema)),
+              Effect.flatMap(Effect.fail),
+            ),
+        ),
       ),
-  );
-
-export const makeClient = (url: string) =>
-  Effect.map(HttpClient.HttpClient, (client) =>
-    client.pipe(
-      HttpClient.mapRequest(HttpClientRequest.prependUrl(url)),
-      HttpClient.mapRequest(
-        HttpClientRequest.setHeader("User-Agent", `${pkg.name}/${pkg.version} (${pkg.repository.url})`),
-      ),
-      HttpClient.retry({
+      HttpClient.retryTransient({
         schedule: Schedule.jittered(Schedule.exponential("0.5 seconds")),
-        while: (error) =>
-          error instanceof HttpClientError.ResponseError &&
-          retryStatuses.includes(error.response.status),
+        times: 5,
       }),
     ),
   );
-
-const toResponseError =
-  (ctx: Pick<HttpClientError.ResponseError, "reason" | "response">) =>
-    (cause: unknown) =>
-      cause instanceof HttpClientError.ResponseError
-        ? cause
-        : new HttpClientError.ResponseError({ ...ctx, cause, request: ctx.response.request });
-
-const retryStatuses = Object.freeze([
-  408, // request timeout
-  429, // too many requests (can be enhanced with headers)
-  500, // internal server error
-  503, // service unavailable
-  504, // gateway timeout
-]);

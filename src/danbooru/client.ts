@@ -1,27 +1,26 @@
 export * from "#internal/danbooru/schema";
 import { ArtistUrl, IqdbQuery } from "#internal/danbooru/schema";
-import { decodeJsonError, decodeJsonResponse, makeClient } from "#internal/util";
-import { FetchHttpClient, HttpClient, HttpClientRequest, type UrlParams } from "@effect/platform";
+import { decodeJsonResponse, makeClient } from "#internal/util";
+import type { UrlParams } from "@effect/platform";
+import { NodeHttpClient } from "@effect/platform-node";
 import { Chunk, Config, Effect, Function, Option, RateLimiter, Schema, Stream } from "effect";
 
 export class Danbooru extends Effect.Service<Danbooru>()("@/danbooru", {
-  dependencies: [FetchHttpClient.layer],
+  dependencies: [NodeHttpClient.layer],
   scoped: Effect.gen(function* () {
-    const url = yield* Function.pipe(
-      Config.url("DANBOORU_URL"),
-      Config.withDefault(new URL("https://danbooru.donmai.us")),
-    );
-    const rateLimit = yield* RateLimiter.make({
-      algorithm: "fixed-window",
-      interval: "1 second",
-      limit: 5,
+    return yield* makeClient({
+      baseUrl: yield* Function.pipe(
+        Config.url("DANBOORU_URL"),
+        Config.withDefault(new URL("https://danbooru.donmai.us")),
+        Config.map((url) => url.href),
+      ),
+      errorSchema: DanbooruError,
+      rateLimiter: yield* RateLimiter.make({
+        algorithm: "fixed-window",
+        interval: "1 second",
+        limit: 5,
+      }),
     });
-    return Function.pipe(
-      yield* makeClient(url.href),
-      HttpClient.mapRequest(HttpClientRequest.acceptJson),
-      HttpClient.transformResponse(rateLimit),
-      HttpClient.transformResponse(decodeJsonError(DanbooruError)),
-    );
   }),
 }) { };
 
@@ -30,7 +29,9 @@ export class DanbooruError extends Schema.Class<DanbooruError>("@/danbooru/error
   message: Schema.String,
   backtrace: Schema.NullOr(Schema.Array(Schema.String)),
   success: Schema.Literal(false),
-}) { };
+}) {
+  readonly _tag = "DanbooruError";
+};
 
 export const getArtistUrls = (urlParams?: UrlParams.CoercibleRecord) =>
   Function.pipe(

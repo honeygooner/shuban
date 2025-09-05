@@ -1,28 +1,30 @@
 export * from "#internal/atproto/schema";
 import { AppBskyActorGetProfileOutput, AppBskyFeedGetAuthorFeedOutput } from "#internal/atproto/schema";
-import { decodeJsonError, decodeJsonResponse, makeClient } from "#internal/util";
-import { FetchHttpClient, HttpClient, HttpClientRequest, type UrlParams } from "@effect/platform";
+import { decodeJsonResponse, makeClient } from "#internal/util";
+import type { UrlParams } from "@effect/platform";
+import { NodeHttpClient } from "@effect/platform-node";
 import { Chunk, Config, Effect, Function, Option, Schema, Stream } from "effect";
 
 export class Bluesky extends Effect.Service<Bluesky>()("@/bluesky", {
-  dependencies: [FetchHttpClient.layer],
+  dependencies: [NodeHttpClient.layerUndici],
   effect: Effect.gen(function* () {
-    const url = yield* Function.pipe(
-      Config.url("BLUESKY_URL"),
-      Config.withDefault(new URL("https://public.api.bsky.app")),
-    );
-    return Function.pipe(
-      yield* makeClient(url.href),
-      HttpClient.mapRequest(HttpClientRequest.acceptJson),
-      HttpClient.transformResponse(decodeJsonError(BlueskyError))
-    );
+    return yield* makeClient({
+      baseUrl: yield* Function.pipe(
+        Config.url("BLUESKY_URL"),
+        Config.withDefault(new URL("https://public.api.bsky.app")),
+        Config.map((url) => url.href),
+      ),
+      errorSchema: BlueskyError,
+    });
   }),
 }) { };
 
 export class BlueskyError extends Schema.Class<BlueskyError>("@/bluesky/error")({
   error: Schema.String,
   message: Schema.String,
-}) { };
+}) {
+  readonly _tag = "BlueskyError";
+};
 
 /** @see {@link https://docs.bsky.app/docs/api/app-bsky-feed-get-author-feed | docs} */
 export const getAuthorFeed = (urlParams?: UrlParams.CoercibleRecord) =>
