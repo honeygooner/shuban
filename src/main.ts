@@ -11,9 +11,14 @@ const program = Function.pipe(
     "search[url_matches]": "bsky.app",
   }),
   Stream.filterMap(({ url }) => Bluesky.getIdentifierSync(url)),
-  Stream.mapEffect(
-    (actor) => Effect.option(Bluesky.getProfile({ actor })),
-    { concurrency: 10, unordered: true },
+  Stream.filterEffect(Database.filterProfile),
+  Stream.mapEffect((actor) =>
+    Function.pipe(
+      Bluesky.getProfile({ actor }),
+      Effect.map(Option.some),
+      Effect.catchTag("BlueskyError", () => Effect.succeedNone),
+    ),
+    { concurrency: 10 },
   ),
   Stream.filterMapEffect(Option.map(Database.upsertProfile)),
   Stream.runDrain,
